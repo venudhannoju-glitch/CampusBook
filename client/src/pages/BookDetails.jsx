@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import { useBooks } from '../context/BookContext'; // Import context
 import { FaUserCircle, FaSpinner, FaCommentDots } from 'react-icons/fa';
 import { getNickname } from '../utils/nicknameGenerator';
 
@@ -9,6 +10,8 @@ const BookDetails = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const { currentUser } = useAuth();
+    const { books, loading: contextLoading, fetchBooks } = useBooks(); // Use context
+
     const [book, setBook] = useState(null);
     const [loading, setLoading] = useState(true);
     const [chatLoading, setChatLoading] = useState(false);
@@ -17,34 +20,28 @@ const BookDetails = () => {
     const [nextBookId, setNextBookId] = useState(null);
 
     useEffect(() => {
-        const fetchBook = async () => {
-            try {
-                const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
-                const { data } = await axios.get(`${API_URL}/api/books`);
-                // Since we don't have getById route yet, filtering client side for MVP
-                // Note: Ideally backend should have GET /api/books/:id
-
-                // Sort data to ensure consistent order for navigation
-                // Assuming default sort is by creation date or similar via ID if not specified
-                // But let's trust the backend order or sort explicitly if needed.
-                // For now, using array index.
-
-                const currentIndex = data.findIndex(b => b._id === id);
-                if (currentIndex !== -1) {
-                    setBook(data[currentIndex]);
-                    setPrevBookId(currentIndex > 0 ? data[currentIndex - 1]._id : null);
-                    setNextBookId(currentIndex < data.length - 1 ? data[currentIndex + 1]._id : null);
-                } else {
-                    setBook(null);
-                }
-            } catch (error) {
-                console.error("Error fetching book details:", error);
-            } finally {
+        // If books are already loaded in context, use them
+        if (books.length > 0) {
+            const currentIndex = books.findIndex(b => b._id === id);
+            if (currentIndex !== -1) {
+                setBook(books[currentIndex]);
+                setPrevBookId(currentIndex > 0 ? books[currentIndex - 1]._id : null);
+                setNextBookId(currentIndex < books.length - 1 ? books[currentIndex + 1]._id : null);
+                setLoading(false);
+            } else {
+                // Book not found in context (maybe new or search filtered), try fetching specifically or re-fetching all if context was empty
+                // For now, if we have books but can't find this one, it might be a valid direct link to a sold book or similar.
+                // Let's rely on the fallback of fetching generic logic if we want, OR just say not found.
+                // But for safety, if context is empty, we wait.
+                setBook(null);
                 setLoading(false);
             }
-        };
-        fetchBook();
-    }, [id]);
+        } else if (!contextLoading) {
+            // Context loaded but empty (no books) or initial state, trigger fetch if needed? 
+            // The context usually fetches on mount. If it returns empty, then maybe no books exist.
+            fetchBooks(); // Ensure we have data
+        }
+    }, [id, books, contextLoading]);
 
     const handleChat = async () => {
         if (!currentUser) {
@@ -105,7 +102,7 @@ const BookDetails = () => {
                 {prevBookId ? (
                     <button
                         onClick={() => navigate(`/books/${prevBookId}`)}
-                        className="pointer-events-auto bg-white/80 hover:bg-white text-indigo-600 p-3 rounded-full shadow-lg transition transform hover:scale-110 backdrop-blur-sm"
+                        className="pointer-events-auto bg-indigo-600 hover:bg-indigo-700 text-white p-3 rounded-full shadow-lg transition transform hover:scale-110 backdrop-blur-sm"
                         title="Previous Book"
                     >
                         &larr;
@@ -115,7 +112,7 @@ const BookDetails = () => {
                 {nextBookId ? (
                     <button
                         onClick={() => navigate(`/books/${nextBookId}`)}
-                        className="pointer-events-auto bg-white/80 hover:bg-white text-indigo-600 p-3 rounded-full shadow-lg transition transform hover:scale-110 backdrop-blur-sm"
+                        className="pointer-events-auto bg-indigo-600 hover:bg-indigo-700 text-white p-3 rounded-full shadow-lg transition transform hover:scale-110 backdrop-blur-sm"
                         title="Next Book"
                     >
                         &rarr;

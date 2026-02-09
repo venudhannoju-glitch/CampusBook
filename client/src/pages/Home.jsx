@@ -1,42 +1,23 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
 import { Link } from 'react-router-dom';
+import { useBooks } from '../context/BookContext';
 
 const Home = () => {
-    const [books, setBooks] = useState([]);
-    const [loading, setLoading] = useState(false); // Set to true when real fetch is active
-
+    const { books, loading, fetchBooks } = useBooks();
     const [searchQuery, setSearchQuery] = useState('');
-
-    const fetchBooks = async (query = '') => {
-        setLoading(true);
-        try {
-            const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
-            const url = query ? `${API_URL}/api/books?search=${query}` : `${API_URL}/api/books`;
-
-            const res = await axios.get(url);
-            if (res.data) {
-                setBooks(res.data);
-            }
-        } catch (error) {
-            console.error("Error fetching books:", error);
-        } finally {
-            setLoading(false);
-        }
-    };
 
     useEffect(() => {
         // Debounce search to avoid spamming API while typing
         const delayDebounceFn = setTimeout(() => {
+            // Only fetch if query is different or to reset
             fetchBooks(searchQuery);
-        }, 500); // Wait 500ms after user stops typing
+        }, 500);
 
         return () => clearTimeout(delayDebounceFn);
-    }, [searchQuery]);
+    }, [searchQuery]); // fetchBooks is stable from context
 
     const handleSearch = (e) => {
         e.preventDefault();
-        // Immediate search if enter/button is pressed (cancels debounce effectively by redundant call, but safe)
         fetchBooks(searchQuery);
     };
 
