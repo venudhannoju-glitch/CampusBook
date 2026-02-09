@@ -102,7 +102,7 @@ const BookDetails = () => {
                 {prevBookId ? (
                     <button
                         onClick={() => navigate(`/books/${prevBookId}`)}
-                        className="pointer-events-auto bg-indigo-600 hover:bg-indigo-700 text-white p-3 rounded-full shadow-lg transition transform hover:scale-110 backdrop-blur-sm"
+                        className="pointer-events-auto bg-indigo-600 hover:bg-indigo-700 text-white p-2 md:p-3 rounded-full shadow-lg transition transform hover:scale-110 backdrop-blur-sm"
                         title="Previous Book"
                     >
                         &larr;
@@ -112,7 +112,7 @@ const BookDetails = () => {
                 {nextBookId ? (
                     <button
                         onClick={() => navigate(`/books/${nextBookId}`)}
-                        className="pointer-events-auto bg-indigo-600 hover:bg-indigo-700 text-white p-3 rounded-full shadow-lg transition transform hover:scale-110 backdrop-blur-sm"
+                        className="pointer-events-auto bg-indigo-600 hover:bg-indigo-700 text-white p-2 md:p-3 rounded-full shadow-lg transition transform hover:scale-110 backdrop-blur-sm"
                         title="Next Book"
                     >
                         &rarr;
@@ -131,7 +131,7 @@ const BookDetails = () => {
                 </div>
 
                 {/* Details Section */}
-                <div className="w-full md:w-1/2 p-8 flex flex-col justify-between">
+                <div className="w-full md:w-1/2 p-5 md:p-8 flex flex-col justify-between">
                     <div>
                         <div className="flex justify-between items-start mb-4">
                             <div>

@@ -24,13 +24,13 @@ const Home = () => {
     return (
         <div className="container mx-auto px-4 py-8">
             {/* Hero Search Section */}
-            <div className="bg-indigo-600 rounded-2xl p-8 mb-10 text-center text-white shadow-xl relative overflow-hidden">
+            <div className="bg-indigo-600 rounded-2xl p-6 md:p-8 mb-8 md:mb-10 text-center text-white shadow-xl relative overflow-hidden">
                 {/* Decorative circles */}
                 <div className="absolute top-0 left-0 w-32 h-32 bg-white opacity-10 rounded-full -translate-x-10 -translate-y-10"></div>
                 <div className="absolute bottom-0 right-0 w-48 h-48 bg-white opacity-10 rounded-full translate-x-10 translate-y-10"></div>
 
-                <h1 className="text-4xl font-bold mb-4 relative z-10">Find Used Books in Your Campus</h1>
-                <p className="mb-8 text-indigo-100 relative z-10 text-lg">Buy and sell textbooks easily within your college community.</p>
+                <h1 className="text-3xl md:text-4xl font-bold mb-4 relative z-10">Find Used Books in Your Campus</h1>
+                <p className="mb-8 text-indigo-100 relative z-10 text-base md:text-lg">Buy and sell textbooks easily within your college community.</p>
 
                 <form onSubmit={handleSearch} className="max-w-2xl mx-auto flex bg-white rounded-full overflow-hidden p-1 shadow-lg relative z-10 transform transition-transform hover:scale-[1.02]">
                     <div className="flex-grow flex items-center px-4">
