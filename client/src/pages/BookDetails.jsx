@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { FaUserCircle, FaSpinner, FaCommentDots } from 'react-icons/fa';
+import { getNickname } from '../utils/nicknameGenerator';
 
 const BookDetails = () => {
     const { id } = useParams();
@@ -123,7 +124,7 @@ const BookDetails = () => {
                             <FaUserCircle className="text-4xl text-gray-300 mr-3" />
                             <div>
                                 <p className="text-sm text-gray-500">Seller</p>
-                                <p className="font-semibold text-gray-800">Student (Hidden ID)</p>
+                                <p className="font-semibold text-gray-800">{book.sellerId ? getNickname(book.sellerId) : 'Anonymous Student'}</p>
                             </div>
                         </div>
 
