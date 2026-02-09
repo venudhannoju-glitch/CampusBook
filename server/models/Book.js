@@ -9,6 +9,7 @@ const BookSchema = new mongoose.Schema({
     images: [{ type: String }], // Array of Cloudinary URLs
     condition: { type: Number, min: 1, max: 5, required: true },
     courseCode: { type: String }, // e.g., "CS101"
+    description: { type: String }, // Optional book description
     status: { type: String, enum: ['Available', 'Sold', 'Reserved'], default: 'Available' },
     location: { type: String }, // e.g., "Hostel 4 Canteen"
     createdAt: { type: Date, default: Date.now },

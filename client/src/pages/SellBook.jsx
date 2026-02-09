@@ -146,6 +146,17 @@ const SellBook = () => {
                     </div>
 
                     <div>
+                        <label className="block text-gray-700 font-medium mb-2">Description (Optional)</label>
+                        <textarea
+                            name="description"
+                            className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 h-32 resize-none"
+                            placeholder="Describe the condition, edition details, or any other info..."
+                            value={formData.description}
+                            onChange={handleChange}
+                        />
+                    </div>
+
+                    <div>
                         <label className="block text-gray-700 font-medium mb-2">Pickup Location</label>
                         <input
                             type="text"
