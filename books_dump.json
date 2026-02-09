@@ -1,0 +1,70 @@
+[
+  {
+    "_id": "6986ed0de8e8ecf81bc87dec",
+    "sellerId": "CWkiXhmtInfzlSzhppXRNpGCd5Z2",
+    "title": "book3",
+    "author": "new author 3",
+    "price": 250,
+    "images": [
+      "https://res.cloudinary.com/dryzrfxtk/image/upload/v1770450191/campusbooks/cbciudvy69qsc1ygsxi1.avif"
+    ],
+    "condition": 3,
+    "courseCode": "cs114",
+    "status": "Available",
+    "location": "class room103",
+    "createdAt": "2026-02-07T07:43:09.233Z",
+    "updatedAt": "2026-02-07T07:43:09.233Z",
+    "__v": 0
+  },
+  {
+    "_id": "6986e56fe8e8ecf81bc87de2",
+    "sellerId": "CWkiXhmtInfzlSzhppXRNpGCd5Z2",
+    "title": "book2",
+    "author": "new author 2",
+    "price": 550,
+    "images": [
+      "https://res.cloudinary.com/dryzrfxtk/image/upload/v1770448241/campusbooks/pumfixirau9jpdmtaosh.jpg"
+    ],
+    "condition": 4,
+    "courseCode": "cs113",
+    "status": "Available",
+    "location": "class room113",
+    "createdAt": "2026-02-07T07:10:39.786Z",
+    "updatedAt": "2026-02-07T07:10:39.786Z",
+    "__v": 0
+  },
+  {
+    "_id": "6986e468f35b5cecef71df2d",
+    "sellerId": "CWkiXhmtInfzlSzhppXRNpGCd5Z2",
+    "title": "book1",
+    "author": "new author",
+    "price": 500,
+    "images": [
+      "https://res.cloudinary.com/dryzrfxtk/image/upload/v1770447978/campusbooks/cujrxygebao41n3qbw5q.jpg"
+    ],
+    "condition": 5,
+    "courseCode": "cs112",
+    "status": "Available",
+    "location": "library",
+    "createdAt": "2026-02-07T07:06:16.760Z",
+    "updatedAt": "2026-02-07T07:06:16.760Z",
+    "__v": 0
+  },
+  {
+    "_id": "6986e3aaf35b5cecef71df25",
+    "sellerId": "CWkiXhmtInfzlSzhppXRNpGCd5Z2",
+    "title": "hello",
+    "author": "narayan",
+    "price": 450,
+    "images": [
+      "https://res.cloudinary.com/dryzrfxtk/image/upload/v1770447788/campusbooks/j9i96b2mgtfn5kaqztzv.png"
+    ],
+    "condition": 3,
+    "courseCode": "cs111",
+    "status": "Available",
+    "location": "cateen",
+    "createdAt": "2026-02-07T07:03:06.653Z",
+    "updatedAt": "2026-02-07T07:03:06.653Z",
+    "__v": 0
+  }
+]
