@@ -33,7 +33,7 @@ export const getNickname = (id) => {
 
     // Pick adjective and noun based on the hash
     const adjIndex = hash % adjectives.length;
-    const nounIndex = (hash >> 3) % nouns.length; // Bit shift to get a different pseudo-random number for noun
+    const nounIndex = Math.floor(hash / 8) % nouns.length; // Use division instead of bit shift for safer large number handling
 
     return `${adjectives[adjIndex]} ${nouns[nounIndex]}`;
 };

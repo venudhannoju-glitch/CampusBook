@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useLocation } from 'react-router-dom';
 import io from 'socket.io-client';
 import axios from 'axios';
 import { FaPaperPlane, FaUserCircle } from 'react-icons/fa';
@@ -8,6 +9,7 @@ const ENDPOINT = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 
 const Chat = () => {
     const { currentUser } = useAuth();
+    const location = useLocation();
     const [chats, setChats] = useState([]);
     const [selectedChat, setSelectedChat] = useState(null);
     const [messages, setMessages] = useState([]);
@@ -53,6 +55,46 @@ const Chat = () => {
         };
         if (currentUser) fetchChats();
     }, [currentUser]);
+
+    // Auto-select chat from navigation state
+    useEffect(() => {
+        if (location.state?.selectedChatId && chats.length > 0 && !selectedChat) {
+            const targetChat = chats.find(c => c._id === location.state.selectedChatId);
+            if (targetChat) {
+                // We need to call handleChatSelect to ensure join room and read status logic runs
+                // But handleChatSelect is defined below, so we need to move it up or duplicate logic.
+                // Best practice: Extract logic or move definition up.
+                // Given constraints, I'll move handleChatSelect up or wrap this effect below it.
+                // Actually, since I can't easily move code blocks with single replace, 
+                // I will just defer this effect execution or assume handleChatSelect is available if I move it?
+                // No, I can't check variable hoisting for const functions.
+                // Let's just set the state directly here and emit the socket join manually to avoid hoisting issues,
+                // OR better: I will replace the whole file content block to reorder or add the effect at the end.
+                // BUT, to keep it simple with this tool, I will implement the logic directly here.
+
+                setSelectedChat(targetChat);
+                setMessages(targetChat.messages || []);
+                socketRef.current?.emit("join chat", targetChat._id);
+                // Mark as read logic
+                const markRead = async () => {
+                    try {
+                        const token = await currentUser.getIdToken();
+                        await axios.put(`${ENDPOINT}/api/chat/${targetChat._id}/read`, {}, {
+                            headers: { Authorization: `Bearer ${token}` }
+                        });
+                    } catch (error) {
+                        console.error("Error marking chat as read:", error);
+                    }
+                };
+                markRead();
+
+                // Clear state to prevent re-opening if user navigates back and forth (optional but good)
+                // location.state = {}; // Mutating state directly is bad, but replacing history is better.
+                // For now, simple selection is enough.
+                window.history.replaceState({}, document.title);
+            }
+        }
+    }, [chats, location.state, selectedChat, currentUser]);
 
     // Handle Send Message
     const sendMessage = async (e) => {

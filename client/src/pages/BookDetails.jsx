@@ -13,6 +13,9 @@ const BookDetails = () => {
     const [loading, setLoading] = useState(true);
     const [chatLoading, setChatLoading] = useState(false);
 
+    const [prevBookId, setPrevBookId] = useState(null);
+    const [nextBookId, setNextBookId] = useState(null);
+
     useEffect(() => {
         const fetchBook = async () => {
             try {
@@ -20,10 +23,20 @@ const BookDetails = () => {
                 const { data } = await axios.get(`${API_URL}/api/books`);
                 // Since we don't have getById route yet, filtering client side for MVP
                 // Note: Ideally backend should have GET /api/books/:id
-                const foundBook = data.find(b => b._id === id);
 
-                if (foundBook) setBook(foundBook);
-                else setBook(null); // Handle not found
+                // Sort data to ensure consistent order for navigation
+                // Assuming default sort is by creation date or similar via ID if not specified
+                // But let's trust the backend order or sort explicitly if needed.
+                // For now, using array index.
+
+                const currentIndex = data.findIndex(b => b._id === id);
+                if (currentIndex !== -1) {
+                    setBook(data[currentIndex]);
+                    setPrevBookId(currentIndex > 0 ? data[currentIndex - 1]._id : null);
+                    setNextBookId(currentIndex < data.length - 1 ? data[currentIndex + 1]._id : null);
+                } else {
+                    setBook(null);
+                }
             } catch (error) {
                 console.error("Error fetching book details:", error);
             } finally {
@@ -86,8 +99,31 @@ const BookDetails = () => {
     if (!book) return <div className="p-20 text-center text-gray-500">Book not found.</div>;
 
     return (
-        <div className="container mx-auto px-4 py-8">
-            <div className="bg-white rounded-2xl shadow-lg overflow-hidden flex flex-col md:flex-row max-w-4xl mx-auto">
+        <div className="container mx-auto px-4 py-8 relative">
+            {/* Navigation Buttons */}
+            <div className="absolute top-1/2 left-0 transform -translate-y-1/2 w-full flex justify-between pointer-events-none px-2 md:px-8">
+                {prevBookId ? (
+                    <button
+                        onClick={() => navigate(`/books/${prevBookId}`)}
+                        className="pointer-events-auto bg-white/80 hover:bg-white text-indigo-600 p-3 rounded-full shadow-lg transition transform hover:scale-110 backdrop-blur-sm"
+                        title="Previous Book"
+                    >
+                        &larr;
+                    </button>
+                ) : <div />} {/* Spacer */}
+
+                {nextBookId ? (
+                    <button
+                        onClick={() => navigate(`/books/${nextBookId}`)}
+                        className="pointer-events-auto bg-white/80 hover:bg-white text-indigo-600 p-3 rounded-full shadow-lg transition transform hover:scale-110 backdrop-blur-sm"
+                        title="Next Book"
+                    >
+                        &rarr;
+                    </button>
+                ) : <div />} {/* Spacer */}
+            </div>
+
+            <div className="bg-white rounded-2xl shadow-lg overflow-hidden flex flex-col md:flex-row max-w-4xl mx-auto relative z-10">
                 {/* Image Section */}
                 <div className="w-full md:w-1/2 bg-gray-100 flex items-center justify-center p-4">
                     <img
