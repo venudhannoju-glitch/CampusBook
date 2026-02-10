@@ -1,15 +1,16 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import io from 'socket.io-client';
 import axios from 'axios';
-import { FaPaperPlane, FaUserCircle } from 'react-icons/fa';
+import { FaPaperPlane, FaUserCircle, FaPlus, FaTimes, FaSearch } from 'react-icons/fa';
 
 const ENDPOINT = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 
 const Chat = () => {
     const { currentUser } = useAuth();
     const location = useLocation();
+    const navigate = useNavigate();
     const [chats, setChats] = useState([]);
     const [selectedChat, setSelectedChat] = useState(null);
     const [messages, setMessages] = useState([]);
@@ -21,13 +22,126 @@ const Chat = () => {
     const messagesEndRef = useRef(null);
     const fileInputRef = useRef(null);
 
-    // ... (Socket Init Effect - Unchanged)
+    // Socket Initialization
+    useEffect(() => {
+        if (currentUser) {
+            socketRef.current = io(ENDPOINT);
+            socketRef.current.emit("setup", currentUser);
+            socketRef.current.on("connected", () => setSocketConnected(true));
+        }
+    }, [currentUser]);
 
-    // ... (Socket Listener Effect - Unchanged)
+    // Socket Message Listener
+    useEffect(() => {
+        if (!socketRef.current) return;
 
-    // ... (Fetch Chats Effect - Unchanged)
+        const messageHandler = (newMessageReceived) => {
+            if (!selectedChat || selectedChat._id !== newMessageReceived.chat._id) {
+                // notification logic here if needed
+            } else {
+                setMessages((prev) => [...prev, newMessageReceived]);
+            }
 
-    // ... (Auto-select Chat Effect - Unchanged)
+            // Update chat list with new last message
+            setChats((prev) => prev.map(c =>
+                c._id === newMessageReceived.chat._id
+                    ? { ...c, lastMessage: newMessageReceived.content || 'Image' }
+                    : c
+            ));
+        };
+
+        socketRef.current.on("message received", messageHandler);
+
+        return () => {
+            socketRef.current.off("message received", messageHandler);
+        };
+    }, [selectedChat]);
+
+    // Fetch Chats
+    useEffect(() => {
+        const fetchChats = async () => {
+            if (!currentUser) return;
+            try {
+                const token = await currentUser.getIdToken();
+                const { data } = await axios.get(`${ENDPOINT}/api/chat`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                setChats(data);
+            } catch (error) {
+                console.error("Error fetching chats:", error);
+            }
+        };
+        fetchChats();
+    }, [currentUser]);
+
+    // Auto-select Chat from Navigation State
+    useEffect(() => {
+        if (location.state?.selectedChatId && chats.length > 0) {
+            const chatToSelect = chats.find(c => c._id === location.state.selectedChatId);
+            if (chatToSelect) {
+                setSelectedChat(chatToSelect);
+                setMessages(chatToSelect.messages || []);
+                socketRef.current?.emit("join chat", chatToSelect._id);
+
+                // Clear the state so we don't re-select on refresh/updates
+                navigate(location.pathname, { replace: true, state: {} });
+            }
+        }
+    }, [location.state, chats]);
+
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchResults, setSearchResults] = useState([]);
+    const [showSearch, setShowSearch] = useState(false);
+    const [searching, setSearching] = useState(false);
+
+    // Search Users
+    useEffect(() => {
+        const searchUsers = async () => {
+            if (!searchQuery.trim()) {
+                setSearchResults([]);
+                return;
+            }
+            setSearching(true);
+            try {
+                const token = await currentUser.getIdToken();
+                const { data } = await axios.get(`${ENDPOINT}/api/auth/users?search=${searchQuery}`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                setSearchResults(data);
+            } catch (error) {
+                console.error(error);
+            } finally {
+                setSearching(false);
+            }
+        };
+        const delay = setTimeout(searchUsers, 500);
+        return () => clearTimeout(delay);
+    }, [searchQuery, currentUser]);
+
+    const startNewChat = async (user) => {
+        try {
+            const token = await currentUser.getIdToken();
+            const { data } = await axios.post(
+                `${ENDPOINT}/api/chat`,
+                { recipientId: user.firebaseUid },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+
+            if (!chats.find(c => c._id === data._id)) {
+                setChats(prev => [data, ...prev]);
+            }
+
+            setSelectedChat(data);
+            setMessages(data.messages || []);
+            socketRef.current?.emit("join chat", data._id);
+
+            setShowSearch(false);
+            setSearchQuery('');
+        } catch (error) {
+            console.error("Error creating chat:", error);
+            alert("Failed to start chat.");
+        }
+    };
 
     // Handle Paste
     const handlePaste = (e) => {
@@ -137,9 +251,58 @@ const Chat = () => {
             <div className="bg-white rounded-2xl shadow-lg h-full overflow-hidden flex">
                 {/* Sidebar - Chat List */}
                 <div className={`w-full md:w-1/3 border-r border-gray-200 flex flex-col ${selectedChat ? 'hidden md:flex' : 'flex'}`}>
-                    <div className="p-4 border-b border-gray-200 bg-gray-50">
+                    <div className="p-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
                         <h2 className="text-xl font-bold text-gray-800">Messages</h2>
+                        <button
+                            onClick={() => { setShowSearch(!showSearch); setSearchQuery(''); }}
+                            className="bg-indigo-100 text-indigo-600 p-2 rounded-full hover:bg-indigo-200 transition"
+                            title="Start New Chat"
+                        >
+                            {showSearch ? <FaTimes /> : <FaPlus />}
+                        </button>
                     </div>
+
+                    {/* Search Area */}
+                    {showSearch && (
+                        <div className="p-4 bg-white border-b border-gray-100">
+                            <div className="relative">
+                                <FaSearch className="absolute left-3 top-3 text-gray-400" />
+                                <input
+                                    type="text"
+                                    placeholder="Search users..."
+                                    className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:border-indigo-500"
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    autoFocus
+                                />
+                            </div>
+                            {/* Results List */}
+                            {searchQuery && (
+                                <div className="mt-2 text-sm text-gray-500">
+                                    {searching ? 'Searching...' : searchResults.length === 0 ? 'No users found.' : ''}
+                                </div>
+                            )}
+                            <div className="mt-2 max-h-48 overflow-y-auto">
+                                {searchResults.map(user => (
+                                    <div
+                                        key={user.firebaseUid}
+                                        onClick={() => startNewChat(user)}
+                                        className="flex items-center p-2 hover:bg-gray-50 cursor-pointer rounded-lg mb-1"
+                                    >
+                                        {user.profilePic ? (
+                                            <img src={user.profilePic} alt={user.name} className="w-8 h-8 rounded-full mr-3" />
+                                        ) : (
+                                            <FaUserCircle className="text-2xl text-gray-400 mr-3" />
+                                        )}
+                                        <div>
+                                            <p className="font-semibold text-gray-800">{user.name}</p>
+                                            <p className="text-xs text-gray-500">{user.email}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                     <div className="flex-grow overflow-y-auto">
                         {chats.length > 0 ? chats.map(chat => {
                             // Find the participant who is NOT the current user

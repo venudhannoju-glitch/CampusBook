@@ -8,11 +8,14 @@ router.get('/', async (req, res) => {
     const { search, course, minPrice, maxPrice, seller } = req.query;
     // TODO: Implement advanced filtering
     try {
-        let query = { status: 'Available' };
+        let query = {};
 
         if (seller) {
             query.sellerId = seller;
+        } else {
+            query.status = 'Available';
         }
+
         if (search) {
             query.$or = [
                 { title: { $regex: search, $options: 'i' } },
@@ -20,7 +23,7 @@ router.get('/', async (req, res) => {
                 { courseCode: { $regex: search, $options: 'i' } }
             ];
         }
-        const books = await Book.find(query).sort({ title: 1 });
+        const books = await Book.find(query).sort({ createdAt: -1 }); // Sort by newest first
         res.json(books);
     } catch (error) {
         res.status(500).json({ message: 'Server Error' });

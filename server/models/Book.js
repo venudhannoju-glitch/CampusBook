@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const BookSchema = new mongoose.Schema({
-    sellerId: { type: String, required: true }, // Firebase UID
+    sellerId: { type: String, required: true, index: true }, // Firebase UID
     title: { type: String, required: true },
     author: { type: String, required: true },
     edition: { type: String },

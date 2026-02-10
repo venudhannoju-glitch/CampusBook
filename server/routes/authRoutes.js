@@ -29,4 +29,31 @@ router.post('/me', verifyToken, async (req, res) => {
     }
 });
 
+// Search Users
+router.get('/users', verifyToken, async (req, res) => {
+    const { search } = req.query;
+    try {
+        let query = {
+            firebaseUid: { $ne: req.user.uid } // Exclude self
+        };
+
+        if (search) {
+            query.$or = [
+                { name: { $regex: search, $options: 'i' } },
+                { email: { $regex: search, $options: 'i' } }
+            ];
+        }
+
+        // Limit results to avoid massive payload
+        const users = await User.find(query)
+            .select('name email profilePic firebaseUid')
+            .limit(20);
+
+        res.json(users);
+    } catch (error) {
+        console.error("Error searching users:", error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+});
+
 module.exports = router;
