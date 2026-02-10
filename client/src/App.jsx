@@ -7,6 +7,7 @@ import Chat from './pages/Chat';
 import Profile from './pages/Profile';
 import BookDetails from './pages/BookDetails';
 import Login from './pages/Login';
+import EditBook from './pages/EditBook';
 
 import { BookProvider } from './context/BookContext';
 
@@ -25,6 +26,7 @@ function App() {
                 <Route path="/chat" element={<Chat />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/books/:id" element={<BookDetails />} />
+                <Route path="/edit-book/:id" element={<EditBook />} />
               </Routes>
             </main>
             <footer className="bg-gray-800 text-gray-400 py-6 text-center">

@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { useBooks } from '../context/BookContext'; // Import context
-import { FaUserCircle, FaSpinner, FaCommentDots } from 'react-icons/fa';
+import { FaUserCircle, FaSpinner, FaCommentDots, FaEdit } from 'react-icons/fa';
 import { getNickname } from '../utils/nicknameGenerator';
 
 const BookDetails = () => {
@@ -161,14 +161,24 @@ const BookDetails = () => {
                             </div>
                         </div>
 
-                        <button
-                            onClick={handleChat}
-                            disabled={chatLoading}
-                            className="w-full bg-indigo-600 text-white font-bold py-4 rounded-xl hover:bg-indigo-700 transition flex justify-center items-center shadow-md transform hover:scale-[1.02]"
-                        >
-                            {chatLoading ? <FaSpinner className="animate-spin mr-2" /> : <FaCommentDots className="mr-2 text-xl" />}
-                            Chat with Seller
-                        </button>
+                        {currentUser && currentUser.uid === book.sellerId ? (
+                            <button
+                                onClick={() => navigate(`/edit-book/${id}`)}
+                                className="w-full bg-indigo-600 text-white font-bold py-4 rounded-xl hover:bg-indigo-700 transition flex justify-center items-center shadow-md transform hover:scale-[1.02]"
+                            >
+                                <FaEdit className="mr-2 text-xl" />
+                                Edit Book
+                            </button>
+                        ) : (
+                            <button
+                                onClick={handleChat}
+                                disabled={chatLoading}
+                                className="w-full bg-indigo-600 text-white font-bold py-4 rounded-xl hover:bg-indigo-700 transition flex justify-center items-center shadow-md transform hover:scale-[1.02]"
+                            >
+                                {chatLoading ? <FaSpinner className="animate-spin mr-2" /> : <FaCommentDots className="mr-2 text-xl" />}
+                                Chat with Seller
+                            </button>
+                        )}
                     </div>
 
                     {currentUser && currentUser.uid === book.sellerId && (

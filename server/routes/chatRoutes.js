@@ -71,21 +71,42 @@ router.post('/', verifyToken, async (req, res) => {
     }
 });
 
+const upload = require('../middleware/uploadMiddleware');
+const cloudinary = require('../config/cloudinary');
+
 // Send Message
-router.post('/:chatId/message', verifyToken, async (req, res) => {
+router.post('/:chatId/message', verifyToken, upload.single('image'), async (req, res) => {
     const { content } = req.body;
     const { chatId } = req.params;
+    const imageFile = req.file;
 
-    if (!content || !chatId) {
+    if ((!content && !imageFile) || !chatId) {
         return res.status(400).json({ message: "Invalid data passed into request" });
     }
 
     try {
         const myId = await getUserId(req.user.uid);
+        let imageUrl = null;
+
+        // Upload to Cloudinary if image exists
+        if (imageFile) {
+            const result = await new Promise((resolve, reject) => {
+                const uploadStream = cloudinary.uploader.upload_stream(
+                    { folder: 'campusbooks_chat' },
+                    (error, result) => {
+                        if (error) reject(error);
+                        else resolve(result);
+                    }
+                );
+                uploadStream.end(imageFile.buffer);
+            });
+            imageUrl = result.secure_url;
+        }
 
         const newMessage = {
             senderId: myId,
-            content: content,
+            content: content || "", // Allow empty string if image is present
+            image: imageUrl,
             readBy: [myId], // Sender has read their own message
             timestamp: new Date()
         };
@@ -94,7 +115,7 @@ router.post('/:chatId/message', verifyToken, async (req, res) => {
             chatId,
             {
                 $push: { messages: newMessage },
-                lastMessage: content,
+                lastMessage: content || (imageUrl ? '📷 Photo' : ''),
                 updatedAt: new Date()
             },
             { new: true }

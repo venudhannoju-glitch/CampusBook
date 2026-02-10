@@ -68,6 +68,64 @@ router.post('/', verifyToken, upload.array('images', 5), async (req, res) => {
     }
 });
 
+// Update a Book
+router.put('/:id', verifyToken, upload.array('images', 5), async (req, res) => {
+    try {
+        const book = await Book.findById(req.params.id);
+
+        if (!book) {
+            return res.status(404).json({ message: 'Book not found' });
+        }
+
+        // Check ownership
+        if (book.sellerId !== req.user.uid) {
+            return res.status(403).json({ message: 'Not authorized to update this book' });
+        }
+
+        // Process new images if any
+        const imageFiles = req.files;
+        let finalImageUrls = book.images || [];
+
+        if (imageFiles && imageFiles.length > 0) {
+            const newImageUrls = [];
+            for (const file of imageFiles) {
+                const result = await new Promise((resolve, reject) => {
+                    const uploadStream = cloudinary.uploader.upload_stream(
+                        { folder: 'campusbooks' },
+                        (error, result) => {
+                            if (error) reject(error);
+                            else resolve(result);
+                        }
+                    );
+                    uploadStream.end(file.buffer);
+                });
+                newImageUrls.push(result.secure_url);
+            }
+            // Logic: Append new images.
+            // If user wants to delete specific images, that's a separate complex UI logic.
+            // For now, just append.
+            finalImageUrls = [...finalImageUrls, ...newImageUrls];
+        }
+
+        // Update fields
+        book.title = req.body.title || book.title;
+        book.author = req.body.author || book.author;
+        book.price = req.body.price || book.price;
+        book.courseCode = req.body.courseCode || book.courseCode;
+        book.condition = req.body.condition || book.condition;
+        book.description = req.body.description || book.description;
+        book.location = req.body.location || book.location;
+        book.images = finalImageUrls;
+
+        const updatedBook = await book.save();
+        res.json(updatedBook);
+
+    } catch (error) {
+        console.error("Error updating book:", error);
+        res.status(500).json({ message: 'Server Error', error: error.message });
+    }
+});
+
 // Delete a Book
 router.delete('/:id', verifyToken, async (req, res) => {
     try {
