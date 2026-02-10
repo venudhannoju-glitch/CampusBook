@@ -33,14 +33,24 @@ const Home = () => {
                 <p className="mb-8 text-indigo-100 relative z-10 text-base md:text-lg">Buy and sell textbooks easily within your college community.</p>
 
                 <form onSubmit={handleSearch} className="max-w-2xl mx-auto flex bg-white rounded-full overflow-hidden p-1 shadow-lg relative z-10 transform transition-transform hover:scale-[1.02]">
-                    <div className="flex-grow flex items-center px-4">
-                        <svg className="w-6 h-6 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="flex-grow flex items-center px-4 relative overflow-hidden">
+                        <svg className="w-6 h-6 text-gray-400 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                         </svg>
+
+                        {/* Custom Mobile Placeholder with Marquee */}
+                        {!searchQuery && (
+                            <div className="absolute left-12 right-0 top-0 bottom-0 flex items-center pointer-events-none md:hidden overflow-hidden">
+                                <span className="text-gray-400 animate-marquee whitespace-nowrap">
+                                    Search by title, author, or course code...
+                                </span>
+                            </div>
+                        )}
+
                         <input
                             type="text"
                             placeholder="Search by title, author, or course code..."
-                            className="w-full py-3 text-gray-800 focus:outline-none text-lg"
+                            className="w-full py-3 text-gray-800 focus:outline-none text-lg bg-transparent placeholder-transparent md:placeholder-gray-400"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
