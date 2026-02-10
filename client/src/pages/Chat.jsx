@@ -14,31 +14,53 @@ const Chat = () => {
     const [selectedChat, setSelectedChat] = useState(null);
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
+    const [socketConnected, setSocketConnected] = useState(false);
     const socketRef = useRef();
     const messagesEndRef = useRef(null);
 
-    // Initialize Socket
+    // Initialize Socket Connection ONLY
     useEffect(() => {
         if (currentUser) {
             socketRef.current = io(ENDPOINT);
             socketRef.current.emit("setup", currentUser.uid);
-            socketRef.current.on("connected", () => console.log("Socket Connected"));
-
-            socketRef.current.on("message recieved", (newMessageRecieved) => {
-                if (
-                    !selectedChat || // if chat is not selected or doesn't match current chat
-                    selectedChat._id !== newMessageRecieved.chat
-                ) {
-                    // TODO: Give notification
-                } else {
-                    setMessages(prev => [...prev, newMessageRecieved]);
-                }
-            });
+            socketRef.current.on("connected", () => setSocketConnected(true));
+            setSocketConnected(true);
         }
+        // Cleanup socket on unmount or user change
         return () => {
-            if (socketRef.current) socketRef.current.disconnect();
+            if (socketRef.current) {
+                socketRef.current.disconnect();
+                setSocketConnected(false);
+            }
         };
-    }, [currentUser, selectedChat]);
+    }, [currentUser]);
+
+    // Handle Socket Events
+    useEffect(() => {
+        if (!socketRef.current) return;
+        console.log("Setting up socket listeners. Connected:", socketConnected, "Chat:", selectedChat?._id);
+
+        const handleMessageReceived = (newMessageRecieved) => {
+            console.log("Message received from socket:", newMessageRecieved);
+            // Fix: Check chatId instead of chat object, and handle both cases just in case
+            const incomingChatId = newMessageRecieved.chatId || newMessageRecieved.chat?._id || newMessageRecieved.chat;
+
+            if (
+                !selectedChat || // if chat is not selected or doesn't match current chat
+                selectedChat._id !== incomingChatId
+            ) {
+                // TODO: Give notification
+            } else {
+                setMessages(prev => [...prev, newMessageRecieved]);
+            }
+        };
+
+        socketRef.current.on("message recieved", handleMessageReceived);
+
+        return () => {
+            socketRef.current.off("message recieved", handleMessageReceived);
+        };
+    }, [selectedChat, socketConnected]);
 
     // Fetch Chats
     useEffect(() => {
