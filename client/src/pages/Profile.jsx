@@ -11,8 +11,22 @@ const Profile = () => {
     const [viewMode, setViewMode] = useState('grid');
 
     useEffect(() => {
-        // ... (fetch logic remains same, dependencies unchanged)
-        // ...
+        const fetchMyBooks = async () => {
+            if (!currentUser) return;
+
+            try {
+                const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+                // Fetch books where sellerId matches current user's UID
+                const { data } = await axios.get(`${API_URL}/api/books?seller=${currentUser.uid}`);
+                setMyBooks(data);
+            } catch (error) {
+                console.error("Error fetching my books:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchMyBooks();
     }, [currentUser]);
 
     const handleDelete = async (bookId) => {

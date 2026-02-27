@@ -176,4 +176,65 @@ router.put('/:chatId/read', verifyToken, async (req, res) => {
     }
 });
 
+// Edit Message
+router.put('/:chatId/messages/:messageId', verifyToken, async (req, res) => {
+    const { chatId, messageId } = req.params;
+    const { content } = req.body;
+
+    try {
+        const userId = await getUserId(req.user.uid);
+        const chat = await Chat.findById(chatId);
+        if (!chat) return res.status(404).json({ message: "Chat not found" });
+
+        const message = chat.messages.id(messageId);
+        if (!message) return res.status(404).json({ message: "Message not found" });
+
+        if (message.senderId.toString() !== userId.toString()) {
+            return res.status(403).json({ message: "Not authorized to edit this message" });
+        }
+
+        message.content = content;
+        // We could add an isEdited field if schema allows, but for now just update content
+
+        await chat.save();
+
+        const io = req.app.get("io");
+        io.in(chatId).emit("message updated", message);
+
+        res.json(message);
+    } catch (error) {
+        console.error("Edit Message Error:", error);
+        res.status(500).json({ message: "Server Error" });
+    }
+});
+
+// Delete Message
+router.delete('/:chatId/messages/:messageId', verifyToken, async (req, res) => {
+    const { chatId, messageId } = req.params;
+
+    try {
+        const userId = await getUserId(req.user.uid);
+        const chat = await Chat.findById(chatId);
+        if (!chat) return res.status(404).json({ message: "Chat not found" });
+
+        const message = chat.messages.id(messageId);
+        if (!message) return res.status(404).json({ message: "Message not found" });
+
+        if (message.senderId.toString() !== userId.toString()) {
+            return res.status(403).json({ message: "Not authorized to delete this message" });
+        }
+
+        chat.messages.pull(messageId);
+        await chat.save();
+
+        const io = req.app.get("io");
+        io.in(chatId).emit("message deleted", { messageId, chatId });
+
+        res.json({ message: "Message deleted", messageId });
+    } catch (error) {
+        console.error("Delete Message Error:", error);
+        res.status(500).json({ message: "Server Error" });
+    }
+});
+
 module.exports = router;

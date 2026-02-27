@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useLocation, useNavigate } from 'react-router-dom';
 import io from 'socket.io-client';
 import axios from 'axios';
-import { FaPaperPlane, FaUserCircle, FaPlus, FaTimes, FaSearch } from 'react-icons/fa';
+import { FaPaperPlane, FaUserCircle, FaPlus, FaTimes, FaSearch, FaEdit, FaTrash } from 'react-icons/fa';
 
 const ENDPOINT = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 
@@ -15,7 +15,10 @@ const Chat = () => {
     const [selectedChat, setSelectedChat] = useState(null);
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
-    const [image, setImage] = useState(null);
+    const [image, setImage] = useState(null); // Restored
+    const [isTyping, setIsTyping] = useState(false);
+    const [typing, setTyping] = useState(false); // Typing state for self
+    const [editingMessageId, setEditingMessageId] = useState(null); // Edit state
     const [preview, setPreview] = useState('');
     const [socketConnected, setSocketConnected] = useState(false);
     const socketRef = useRef();
@@ -218,6 +221,39 @@ const Chat = () => {
         }
     };
 
+    const handleEditMessage = (message) => {
+        setEditingMessageId(message._id);
+        setNewMessage(message.content);
+    };
+
+    const handleDeleteMessage = async (messageId) => {
+        // Confirmation could be better UI, but alert is fine for Phase 1
+        if (!window.confirm("Delete this message?")) return;
+        try {
+            const token = await currentUser.getIdToken();
+            await axios.delete(`${ENDPOINT}/api/chat/${selectedChat._id}/messages/${messageId}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+        } catch (error) {
+            console.error("Error deleting message:", error);
+        }
+    };
+
+    const submitEdit = async () => {
+        if (!newMessage.trim()) return;
+        try {
+            const token = await currentUser.getIdToken();
+            await axios.put(`${ENDPOINT}/api/chat/${selectedChat._id}/messages/${editingMessageId}`,
+                { content: newMessage },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            setEditingMessageId(null);
+            setNewMessage("");
+        } catch (error) {
+            console.error("Error updating message:", error);
+        }
+    };
+
     // Select Chat & Load Messages
     const handleChatSelect = async (chat) => {
         setSelectedChat(chat);
@@ -368,21 +404,36 @@ const Chat = () => {
                                     const isMyMessage = (msg.senderId._id || msg.senderId) === (chats.find(c => c._id === selectedChat._id)?.participants.find(p => p.firebaseUid === currentUser.uid)?._id);
 
                                     return (
-                                        <div key={index} className={`flex ${isMyMessage ? 'justify-end' : 'justify-start'}`}>
-                                            <div className={`max-w-[70%] px-4 py-2 rounded-2xl ${isMyMessage ? 'bg-indigo-600 text-white rounded-br-none' : 'bg-white text-gray-800 shadow-sm rounded-bl-none'}`}>
-                                                {msg.image && (
-                                                    <img src={msg.image} alt="Sent" className="max-w-full h-auto rounded-lg mb-2" />
+                                        <div key={index} className={`flex ${isMyMessage ? 'justify-end' : 'justify-start'} group mb-2`}>
+                                            <div className="relative max-w-[70%]">
+                                                {isMyMessage && (
+                                                    <div className="absolute top-0 right-0 -mt-8 hidden group-hover:flex space-x-1 bg-white shadow-md p-1 rounded-lg border border-gray-100 z-10">
+                                                        <button onClick={() => handleEditMessage(msg)} className="text-gray-500 hover:text-indigo-600 p-1" title="Edit"><FaEdit size={12} /></button>
+                                                        <button onClick={() => handleDeleteMessage(msg._id)} className="text-gray-500 hover:text-red-500 p-1" title="Delete"><FaTrash size={12} /></button>
+                                                    </div>
                                                 )}
-                                                {msg.content && <p>{msg.content}</p>}
-                                                <div className={`text-xs flex justify-end items-center mt-1 space-x-1 ${isMyMessage ? 'text-indigo-200' : 'text-gray-400'}`}>
-                                                    <span>{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                                                    {msg.status === 'sending' && <span>(Sending...)</span>}
-                                                    {msg.status === 'failed' && <span className="text-red-300">(Failed)</span>}
+                                                <div className={`px-4 py-2 rounded-2xl ${isMyMessage ? 'bg-indigo-600 text-white rounded-br-none' : 'bg-white text-gray-800 shadow-sm rounded-bl-none'}`}>
+                                                    {msg.image && (
+                                                        <img src={msg.image} alt="Sent" className="max-w-full h-auto rounded-lg mb-2" />
+                                                    )}
+                                                    {msg.content && <p>{msg.content}</p>}
+                                                    <div className={`text-xs flex justify-end items-center mt-1 space-x-1 ${isMyMessage ? 'text-indigo-200' : 'text-gray-400'}`}>
+                                                        <span>{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                                        {msg.status === 'sending' && <span>(Sending...)</span>}
+                                                        {msg.status === 'failed' && <span className="text-red-300">(Failed)</span>}
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
                                     );
                                 })}
+                                {isTyping && (
+                                    <div className="flex justify-start mb-2 animate-pulse">
+                                        <div className="bg-gray-200 text-gray-500 rounded-2xl px-4 py-2 text-sm italic">
+                                            Typing...
+                                        </div>
+                                    </div>
+                                )}
                                 <div ref={messagesEndRef} />
                             </div>
 
