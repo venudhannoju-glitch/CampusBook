@@ -12,6 +12,7 @@ const BookSchema = new mongoose.Schema({
     description: { type: String }, // Optional book description
     status: { type: String, enum: ['Available', 'Sold', 'Reserved'], default: 'Available' },
     location: { type: String }, // e.g., "Hostel 4 Canteen"
+    college: { type: String }, // User's college to filter books
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now }
 });

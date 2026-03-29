@@ -8,6 +8,8 @@ import Profile from './pages/Profile';
 import BookDetails from './pages/BookDetails';
 import Login from './pages/Login';
 import EditBook from './pages/EditBook';
+import Colleges from './pages/Colleges';
+import CollegeBooks from './pages/CollegeBooks';
 
 import { BookProvider } from './context/BookContext';
 
@@ -21,6 +23,8 @@ function App() {
             <main className="flex-grow">
               <Routes>
                 <Route path="/" element={<Home />} />
+                <Route path="/colleges" element={<Colleges />} />
+                <Route path="/colleges/:collegeName" element={<CollegeBooks />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/sell" element={<SellBook />} />
                 <Route path="/chat" element={<Chat />} />

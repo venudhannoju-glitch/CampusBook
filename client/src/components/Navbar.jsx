@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { FaBook, FaUserCircle, FaSignOutAlt, FaBars, FaTimes } from 'react-icons/fa';
+import { FaBook, FaUserCircle, FaSignOutAlt, FaBars, FaTimes, FaCommentDots } from 'react-icons/fa';
 
 const Navbar = () => {
     const { currentUser, logout } = useAuth();
@@ -55,17 +55,20 @@ const Navbar = () => {
 
                 {/* Desktop Menu */}
                 <div className="hidden md:flex items-center space-x-4">
+                    <Link to="/colleges" className="text-gray-600 hover:text-indigo-600 font-medium">
+                        Colleges
+                    </Link>
                     <Link to="/sell" className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">
                         Sell Book
                     </Link>
 
                     {currentUser ? (
                         <div className="flex items-center space-x-3">
-                            <Link to="/chat" className="text-gray-600 hover:text-indigo-600 relative">
-                                Chats
+                            <Link to="/chat" className="text-gray-600 hover:text-indigo-600 relative flex items-center mt-1 mr-2 transition" title="Chats">
+                                <FaCommentDots className="text-[24px]" />
                                 {unreadCount > 0 && (
-                                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
-                                        {unreadCount}
+                                    <span className="absolute -top-1.5 -right-2 bg-red-500 text-white text-[10px] font-bold rounded-full h-[18px] min-w-[18px] px-1 flex items-center justify-center border-2 border-white shadow-sm">
+                                        {unreadCount > 99 ? '99+' : unreadCount}
                                     </span>
                                 )}
                             </Link>
@@ -98,17 +101,23 @@ const Navbar = () => {
             {/* Mobile Menu Dropdown */}
             {isOpen && (
                 <div className="md:hidden bg-white border-t border-gray-100 absolute w-full left-0 shadow-lg py-4 px-4 flex flex-col space-y-4">
+                    <Link to="/colleges" className="text-gray-700 hover:text-indigo-600 font-bold text-center py-2" onClick={closeMenu}>
+                        Colleges
+                    </Link>
                     <Link to="/sell" className="bg-indigo-600 text-white px-4 py-3 rounded-lg text-center font-bold hover:bg-indigo-700 transition" onClick={closeMenu}>
                         Sell Book
                     </Link>
 
                     {currentUser ? (
                         <>
-                            <Link to="/chat" className="text-gray-700 hover:text-indigo-600 font-medium flex justify-between items-center py-2 border-b border-gray-50" onClick={closeMenu}>
-                                <span>Chats</span>
+                            <Link to="/chat" className="text-gray-700 hover:text-indigo-600 font-medium flex justify-between items-center py-3 border-b border-gray-50" onClick={closeMenu}>
+                                <div className="flex items-center space-x-3">
+                                    <FaCommentDots className="text-xl text-indigo-500" />
+                                    <span>Messages</span>
+                                </div>
                                 {unreadCount > 0 && (
-                                    <span className="bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
-                                        {unreadCount}
+                                    <span className="bg-red-500 text-white text-xs font-bold rounded-full px-2.5 py-1 flex items-center justify-center shadow-sm">
+                                        {unreadCount} New
                                     </span>
                                 )}
                             </Link>

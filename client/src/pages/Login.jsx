@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
-import { FaGoogle, FaEnvelope, FaLock, FaUser } from 'react-icons/fa';
+import { FaGoogle, FaEnvelope, FaLock, FaUser, FaUniversity } from 'react-icons/fa';
+import axios from 'axios';
 
 const Login = () => {
     const { login, signup, loginWithGoogle } = useAuth();
@@ -16,6 +17,7 @@ const Login = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [name, setName] = useState('');
+    const [college, setCollege] = useState('');
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -24,7 +26,13 @@ const Login = () => {
 
         try {
             if (isRegistering) {
-                await signup(email, password, name);
+                if (!college.trim()) {
+                    throw new Error("Please select or enter your college.");
+                }
+                const user = await signup(email, password, name);
+                const token = await user.getIdToken();
+                const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+                await axios.put(`${API_URL}/api/auth/profile`, { college }, { headers: { Authorization: `Bearer ${token}` } });
             } else {
                 await login(email, password);
             }
@@ -40,7 +48,12 @@ const Login = () => {
     const handleGoogleLogin = async () => {
         try {
             setLoading(true);
-            await loginWithGoogle();
+            const user = await loginWithGoogle();
+            if (isRegistering && college.trim()) {
+                const token = await user.getIdToken();
+                const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+                await axios.put(`${API_URL}/api/auth/profile`, { college }, { headers: { Authorization: `Bearer ${token}` } });
+            }
             navigate('/');
         } catch (err) {
             console.error("Google Login Error:", err);
@@ -77,20 +90,46 @@ const Login = () => {
                 <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
                     <div className="rounded-md shadow-sm -space-y-px">
                         {isRegistering && (
-                            <div className="relative mb-4">
-                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <FaUser className="text-gray-400" />
+                            <>
+                                <div className="relative mb-4">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <FaUser className="text-gray-400" />
+                                    </div>
+                                    <input
+                                        name="name"
+                                        type="text"
+                                        required
+                                        className="appearance-none rounded-none relative block w-full px-3 py-2 pl-10 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                                        placeholder="Full Name"
+                                        value={name}
+                                        onChange={(e) => setName(e.target.value)}
+                                    />
                                 </div>
-                                <input
-                                    name="name"
-                                    type="text"
-                                    required
-                                    className="appearance-none rounded-none relative block w-full px-3 py-2 pl-10 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                                    placeholder="Full Name"
-                                    value={name}
-                                    onChange={(e) => setName(e.target.value)}
-                                />
-                            </div>
+                                <div className="relative mb-4">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <FaUniversity className="text-gray-400" />
+                                    </div>
+                                    <input
+                                        list="colleges"
+                                        name="college"
+                                        type="text"
+                                        required={isRegistering}
+                                        className="appearance-none rounded-none relative block w-full px-3 py-2 pl-10 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                                        placeholder="College Name"
+                                        value={college}
+                                        onChange={(e) => setCollege(e.target.value)}
+                                    />
+                                    <datalist id="colleges">
+                                        <option value="CVR College of Engineering" />
+                                        <option value="VNR Vignana Jyothi Institute of Engineering and Technology" />
+                                        <option value="Vasavi College of Engineering" />
+                                        <option value="CBIT (Chaitanya Bharathi Institute of Technology)" />
+                                        <option value="JNTUH University College of Engineering" />
+                                        <option value="Osmania University" />
+                                        <option value="Institute of Technology" />
+                                    </datalist>
+                                </div>
+                            </>
                         )}
                         <div className="relative mb-4">
                             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">

@@ -18,7 +18,7 @@ router.post('/me', verifyToken, async (req, res) => {
                 email,
                 name: req.body.name || 'Student',
                 profilePic: req.body.profilePic || picture,
-                college: 'Institute of Technology', // Default for MVP
+                college: req.body.college || 'Institute of Technology', // Default for MVP
             });
             await user.save();
         }
@@ -27,6 +27,19 @@ router.post('/me', verifyToken, async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: 'Server Error' });
     }
+});
+
+// Update Profile
+router.put('/profile', verifyToken, async (req, res) => {
+    try {
+        const { college } = req.body;
+        const user = await User.findOneAndUpdate(
+            { firebaseUid: req.user.uid },
+            { $set: { college } },
+            { new: true }
+        );
+        res.json(user);
+    } catch (err) { res.status(500).json({ message: 'Server Error' }); }
 });
 
 // Search Users

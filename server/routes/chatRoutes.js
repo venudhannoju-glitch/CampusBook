@@ -211,7 +211,15 @@ router.put('/:chatId/messages/:messageId', verifyToken, async (req, res) => {
         if (!message) return res.status(404).json({ message: "Message not found" });
 
         if (message.senderId.toString() !== userId.toString()) {
-            return res.status(403).json({ message: "Not authorized to edit this message" });
+            // Check if it's a bid update so partners can accept/decline
+            let isBidUpdate = false;
+            try {
+                if (content && content.startsWith('{"type":"bid"')) isBidUpdate = true;
+            } catch (e) { }
+
+            if (!isBidUpdate) {
+                return res.status(403).json({ message: "Not authorized to edit this message" });
+            }
         }
 
         message.content = content;

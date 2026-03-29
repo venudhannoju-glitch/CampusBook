@@ -1,11 +1,25 @@
 const express = require('express');
 const router = express.Router();
 const Book = require('../models/Book');
+const User = require('../models/User');
 const verifyToken = require('../middleware/authMiddleware');
+
+// Get All Colleges
+router.get('/colleges', async (req, res) => {
+    try {
+        const colleges = await Book.distinct('college', { status: 'Available' });
+        // Filter out null or missing values
+        const validColleges = colleges.filter(c => c && c.trim() !== '');
+        res.json(validColleges);
+    } catch (error) {
+        console.error("Error fetching colleges:", error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+});
 
 // Get All Books (with optional Search)
 router.get('/', async (req, res) => {
-    const { search, course, minPrice, maxPrice, seller } = req.query;
+    const { search, course, minPrice, maxPrice, seller, college } = req.query;
     // TODO: Implement advanced filtering
     try {
         let query = {};
@@ -23,6 +37,11 @@ router.get('/', async (req, res) => {
                 { courseCode: { $regex: search, $options: 'i' } }
             ];
         }
+
+        if (college) {
+            query.college = college;
+        }
+
         const books = await Book.find(query).sort({ createdAt: -1 }); // Sort by newest first
         res.json(books);
     } catch (error) {
@@ -56,9 +75,13 @@ router.post('/', verifyToken, upload.array('images', 5), async (req, res) => {
             }
         }
 
+        const userDoc = await User.findOne({ firebaseUid: req.user.uid });
+        const userCollege = userDoc ? userDoc.college : req.body.college || 'Unknown College';
+
         const newBook = new Book({
             sellerId: req.user.uid, // Use UID from verified token
             userId: req.user.uid,   // Keep for backward compatibility if needed
+            college: userCollege,
             ...req.body,
             images: imageUrls.length > 0 ? imageUrls : ['https://via.placeholder.com/300?text=No+Image']
         });
