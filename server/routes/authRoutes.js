@@ -46,7 +46,7 @@ router.get('/users', verifyToken, async (req, res) => {
 
         // Limit results to avoid massive payload
         const users = await User.find(query)
-            .select('name email profilePic firebaseUid')
+            .select('name email profilePic firebaseUid college')
             .limit(20);
 
         res.json(users);

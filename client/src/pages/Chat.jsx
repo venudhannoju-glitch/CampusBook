@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth, db } from '../context/AuthContext';
 import { useLocation, useNavigate } from 'react-router-dom';
-import io from 'socket.io-client';
+import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import axios from 'axios';
 import { FaPaperPlane, FaUserCircle, FaPlus, FaTimes, FaSearch, FaEdit, FaTrash } from 'react-icons/fa';
 
@@ -20,44 +20,47 @@ const Chat = () => {
     const [typing, setTyping] = useState(false); // Typing state for self
     const [editingMessageId, setEditingMessageId] = useState(null); // Edit state
     const [preview, setPreview] = useState('');
-    const [socketConnected, setSocketConnected] = useState(false);
-    const socketRef = useRef();
+
     const messagesEndRef = useRef(null);
     const fileInputRef = useRef(null);
 
-    // Socket Initialization
+    // Firestore Message Listener
     useEffect(() => {
-        if (currentUser) {
-            socketRef.current = io(ENDPOINT);
-            socketRef.current.emit("setup", currentUser);
-            socketRef.current.on("connected", () => setSocketConnected(true));
-        }
-    }, [currentUser]);
+        if (!selectedChat) return;
 
-    // Socket Message Listener
-    useEffect(() => {
-        if (!socketRef.current) return;
+        const q = query(
+            collection(db, 'chats', selectedChat._id, 'messages'),
+            orderBy('timestamp')
+        );
 
-        const messageHandler = (newMessageReceived) => {
-            if (!selectedChat || selectedChat._id !== newMessageReceived.chat._id) {
-                // notification logic here if needed
-            } else {
-                setMessages((prev) => [...prev, newMessageReceived]);
-            }
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            snapshot.docChanges().forEach((change) => {
+                if (change.type === "added" || change.type === "modified") {
+                    const newMsg = change.doc.data();
+                    setMessages(prev => {
+                        const exists = prev.find(m => m._id === newMsg._id);
+                        if (exists) {
+                            return prev.map(m => m._id === newMsg._id ? newMsg : m);
+                        }
+                        return [...prev, newMsg].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+                    });
 
-            // Update chat list with new last message
-            setChats((prev) => prev.map(c =>
-                c._id === newMessageReceived.chat._id
-                    ? { ...c, lastMessage: newMessageReceived.content || 'Image' }
-                    : c
-            ));
-        };
+                    // Update chat list lastMessage
+                    setChats((prevChats) => prevChats.map(c =>
+                        c._id === selectedChat._id
+                            ? { ...c, lastMessage: newMsg.content || 'Image' }
+                            : c
+                    ));
+                }
+                if (change.type === "removed") {
+                    setMessages(prev => prev.filter(m => m._id !== change.doc.id));
+                }
+            });
+        }, (error) => {
+            console.error("Firestore Error:", error);
+        });
 
-        socketRef.current.on("message received", messageHandler);
-
-        return () => {
-            socketRef.current.off("message received", messageHandler);
-        };
+        return () => unsubscribe();
     }, [selectedChat]);
 
     // Fetch Chats
@@ -84,7 +87,7 @@ const Chat = () => {
             if (chatToSelect) {
                 setSelectedChat(chatToSelect);
                 setMessages(chatToSelect.messages || []);
-                socketRef.current?.emit("join chat", chatToSelect._id);
+
 
                 // Clear the state so we don't re-select on refresh/updates
                 navigate(location.pathname, { replace: true, state: {} });
@@ -136,7 +139,7 @@ const Chat = () => {
 
             setSelectedChat(data);
             setMessages(data.messages || []);
-            socketRef.current?.emit("join chat", data._id);
+
 
             setShowSearch(false);
             setSearchQuery('');
@@ -209,7 +212,7 @@ const Chat = () => {
             // Backend returns the full updated Chat object
             const actualMessage = data.messages[data.messages.length - 1];
 
-            socketRef.current.emit("new message", { chatId: selectedChat._id, ...actualMessage });
+
 
             // Replace temp message with actual message
             setMessages(prev => prev.map(msg => msg._id === tempId ? actualMessage : msg));
@@ -258,7 +261,7 @@ const Chat = () => {
     const handleChatSelect = async (chat) => {
         setSelectedChat(chat);
         setMessages(chat.messages || []);
-        socketRef.current.emit("join chat", chat._id);
+
 
         // Mark as Read
         try {
@@ -281,6 +284,10 @@ const Chat = () => {
     }, [messages]);
 
     if (!currentUser) return <div className="p-10 text-center">Please login to chat.</div>;
+
+    const activeOtherUser = selectedChat?.participants.find(p => p.firebaseUid !== currentUser.uid);
+    const activeMe = selectedChat?.participants.find(p => p.firebaseUid === currentUser.uid);
+    const sameCollege = activeMe?.college && activeOtherUser?.college && activeMe.college === activeOtherUser.college;
 
     return (
         <div className="container mx-auto p-4 h-[calc(100vh-80px)]">
@@ -391,10 +398,21 @@ const Chat = () => {
                                 <button onClick={() => setSelectedChat(null)} className="md:hidden mr-4 text-indigo-600 font-bold">
                                     &larr; Back
                                 </button>
-                                <FaUserCircle className="text-3xl text-gray-400 mr-3" />
-                                <h3 className="font-bold text-gray-800">
-                                    {selectedChat.participants.find(p => p.firebaseUid !== currentUser.uid)?.name || 'User'}
-                                </h3>
+                                {activeOtherUser?.profilePic ? (
+                                    <img src={activeOtherUser.profilePic} alt={activeOtherUser.name} className="w-10 h-10 rounded-full object-cover mr-3" />
+                                ) : (
+                                    <FaUserCircle className="text-3xl text-gray-400 mr-3" />
+                                )}
+                                <div className="flex flex-col">
+                                    <h3 className="font-bold text-gray-800 leading-tight">
+                                        {activeOtherUser?.name || 'User'}
+                                    </h3>
+                                    {sameCollege && (
+                                        <p className="text-[11px] text-green-700 bg-green-100 px-2 py-[2px] rounded-full inline-block mt-1 font-medium shadow-sm border border-green-200">
+                                            🎓 You both study at {activeMe.college}
+                                        </p>
+                                    )}
+                                </div>
                             </div>
 
                             {/* Messages */}

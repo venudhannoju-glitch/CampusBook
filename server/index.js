@@ -3,7 +3,6 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const { createServer } = require('http');
-const { Server } = require('socket.io');
 
 dotenv.config();
 
@@ -15,25 +14,7 @@ const allowedOrigins = [
     process.env.CLIENT_URL, // Allow configured client URL
 ].filter(Boolean); // Remote undefined values
 
-const io = new Server(httpServer, {
-    cors: {
-        origin: (origin, callback) => {
-            // Allow requests with no origin (like mobile apps or curl requests)
-            if (!origin) return callback(null, true);
-            if (allowedOrigins.indexOf(origin) !== -1 || !process.env.NODE_ENV || process.env.NODE_ENV === 'development') {
-                callback(null, true);
-            } else {
-                // Temporarily allow all for easier deployment debugging if needed, 
-                // or strict: callback(new Error('Not allowed by CORS'));
-                // For this user, let's be permissible for now to avoid specific URL issues during setup
-                callback(null, true);
-            }
-        },
-        methods: ["GET", "POST", "PUT", "DELETE"] // Added PUT/DELETE for consistency
-    }
-});
 
-app.set("io", io);
 
 const PORT = process.env.PORT || 5000;
 
@@ -64,31 +45,7 @@ mongoose.connect(process.env.MONGO_URI, {
     console.error('MongoDB Connection Error:', err);
 });
 
-// Socket.io Logic
-io.on('connection', (socket) => {
-    console.log('New Socket Connected:', socket.id);
 
-    socket.on('setup', (userData) => {
-        socket.join(userData);
-        socket.emit('connected');
-    });
-
-    socket.on('join chat', (room) => {
-        socket.join(room);
-        console.log('User joined Room: ' + room);
-    });
-
-    socket.on("typing", (room) => socket.in(room).emit("typing"));
-    socket.on("stop typing", (room) => socket.in(room).emit("stop typing"));
-
-    socket.on('new message', (newMessageRecieved) => {
-        var chat = newMessageRecieved.chatId;
-        if (!chat) return console.log("Chat.users not defined");
-
-        // Broadcast to others in room
-        socket.in(chat).emit("message recieved", newMessageRecieved);
-    });
-});
 
 // Start Server
 httpServer.listen(PORT, () => {

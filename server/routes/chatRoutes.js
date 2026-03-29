@@ -3,6 +3,7 @@ const router = express.Router();
 const Chat = require('../models/Chat');
 const User = require('../models/User');
 const verifyToken = require('../middleware/authMiddleware');
+const admin = require('../config/firebase');
 
 // Helper to get Mongo ID from Firebase UID
 const getUserId = async (firebaseUid) => {
@@ -20,7 +21,7 @@ router.get('/', verifyToken, async (req, res) => {
 
         const chats = await Chat.find({
             participants: userId
-        }).populate('participants', 'name profilePic firebaseUid').sort({ updatedAt: -1 });
+        }).populate('participants', 'name profilePic firebaseUid college').sort({ updatedAt: -1 });
         res.json(chats);
     } catch (error) {
         console.error("Fetch Chats Error:", error);
@@ -121,6 +122,26 @@ router.post('/:chatId/message', verifyToken, upload.single('image'), async (req,
             { new: true }
         ).populate('participants', '-password');
 
+        const actualMessage = updatedChat.messages[updatedChat.messages.length - 1];
+
+        // Mirror to Firestore
+        try {
+            await admin.firestore()
+                .collection('chats').doc(chatId)
+                .collection('messages').doc(actualMessage._id.toString())
+                .set({
+                    _id: actualMessage._id.toString(),
+                    senderId: actualMessage.senderId.toString(),
+                    content: actualMessage.content || "",
+                    image: actualMessage.image || null,
+                    readBy: actualMessage.readBy.map(id => id.toString()),
+                    timestamp: actualMessage.timestamp.toISOString(),
+                    status: 'sent'
+                });
+        } catch (fbErr) {
+            console.error("Firebase Sync Error:", fbErr);
+        }
+
         res.json(updatedChat);
     } catch (error) {
         console.error("Send Message Error:", error);
@@ -198,8 +219,23 @@ router.put('/:chatId/messages/:messageId', verifyToken, async (req, res) => {
 
         await chat.save();
 
-        const io = req.app.get("io");
-        io.in(chatId).emit("message updated", message);
+        // Mirror to Firestore
+        try {
+            await admin.firestore()
+                .collection('chats').doc(chatId)
+                .collection('messages').doc(messageId)
+                .set({
+                    _id: message._id.toString(),
+                    senderId: message.senderId.toString(),
+                    content: message.content,
+                    image: message.image || null,
+                    readBy: message.readBy.map(id => id.toString()),
+                    timestamp: message.timestamp.toISOString(),
+                    status: 'sent'
+                }, { merge: true });
+        } catch (fbErr) {
+            console.error("Firebase Sync Error (Edit):", fbErr);
+        }
 
         res.json(message);
     } catch (error) {
@@ -227,8 +263,15 @@ router.delete('/:chatId/messages/:messageId', verifyToken, async (req, res) => {
         chat.messages.pull(messageId);
         await chat.save();
 
-        const io = req.app.get("io");
-        io.in(chatId).emit("message deleted", { messageId, chatId });
+        // Mirror to Firestore
+        try {
+            await admin.firestore()
+                .collection('chats').doc(chatId)
+                .collection('messages').doc(messageId)
+                .delete();
+        } catch (fbErr) {
+            console.error("Firebase Sync Error (Delete):", fbErr);
+        }
 
         res.json({ message: "Message deleted", messageId });
     } catch (error) {

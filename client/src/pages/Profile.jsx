@@ -7,26 +7,35 @@ import { FaUserCircle, FaBook, FaPlus, FaList, FaTh, FaEdit, FaTrash } from 'rea
 const Profile = () => {
     const { currentUser } = useAuth();
     const [myBooks, setMyBooks] = useState([]);
+    const [dbUser, setDbUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [viewMode, setViewMode] = useState('grid');
 
     useEffect(() => {
-        const fetchMyBooks = async () => {
+        const fetchMyBooksAndProfile = async () => {
             if (!currentUser) return;
 
             try {
+                const token = await currentUser.getIdToken();
                 const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+
+                // Fetch user profile
+                const profileRes = await axios.post(`${API_URL}/api/auth/me`, {}, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                setDbUser(profileRes.data);
+
                 // Fetch books where sellerId matches current user's UID
                 const { data } = await axios.get(`${API_URL}/api/books?seller=${currentUser.uid}`);
                 setMyBooks(data);
             } catch (error) {
-                console.error("Error fetching my books:", error);
+                console.error("Error fetching data:", error);
             } finally {
                 setLoading(false);
             }
         };
 
-        fetchMyBooks();
+        fetchMyBooksAndProfile();
     }, [currentUser]);
 
     const handleDelete = async (bookId) => {
@@ -65,7 +74,7 @@ const Profile = () => {
                     <h1 className="text-3xl font-bold text-gray-800 mb-1">{currentUser.displayName || 'Student'}</h1>
                     <p className="text-gray-500 mb-4">{currentUser.email}</p>
                     <div className="inline-block bg-indigo-50 text-indigo-700 px-4 py-2 rounded-full text-sm font-semibold">
-                        CampusBooks Member
+                        {dbUser ? dbUser.college || 'CampusBooks Member' : 'CampusBooks Member'}
                     </div>
                 </div>
             </div>
